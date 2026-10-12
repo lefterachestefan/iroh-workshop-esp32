@@ -1,0 +1,20 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Boilerplate shared by the workshop steps: WiFi and an ESP32-sized iroh endpoint"
+
+[dependencies]
+log = "0.4"
+esp-idf-svc = "0.53"
+iroh = { version = "1.3", default-features = false }
+iroh-relay = { version = "1.3", default-features = false }
+tokio = { version = "1", features = ["rt"] }
+# Pure-Rust crypto for rustls: ring and aws-lc don't build for these targets.
+rustls-rustcrypto = { git = "https://github.com/n0-computer/rustls-rustcrypto", branch = "feature-flag-algorithms-v0.0.2", default-features = false, features = ["std", "p256"] }
+rustls = { version = "0.23", default-features = false }
+aes = "0.8"
+aes-gcm = "0.10"
+n0-error = "1.0.0"
+n0-future = "0.3"

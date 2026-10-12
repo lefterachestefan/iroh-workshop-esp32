@@ -1,0 +1,15 @@
+[package]
+name = "hello"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+common = { path = "../common" }
+log = "0.4"
+# Needed directly, not just through `common`: build.rs only gets the ESP-IDF
+# linker arguments from a direct dependency.
+esp-idf-svc = "0.53"
+
+[build-dependencies]
+embuild = "0.33"

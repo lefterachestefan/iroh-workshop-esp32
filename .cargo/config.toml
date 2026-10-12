@@ -1,0 +1,21 @@
+[build]
+# The XIAO ESP32-C5: 32-bit RISC-V with atomics (RV32IMAC). Keep MCU in [env]
+# below in sync.
+target = "riscv32imac-esp-espidf"
+
+[target.riscv32imac-esp-espidf]
+linker = "ldproxy"
+# `--after no-reset`: only the monitor resets the chip. Two resets in quick
+# succession can leave newer chips in a boot loop until they're unplugged.
+runner = "espflash flash --after no-reset --monitor"
+# ldproxy reports on stderr, which newer nightlies turn into warnings.
+rustflags = ["--cfg", "espidf_time64", "-Alinker_messages"]
+
+[unstable]
+build-std = ["std", "panic_abort"]
+# Size-first std; behavior-neutral, ~180 KB smaller.
+build-std-features = ["optimize_for_size"]
+
+[env]
+MCU = "esp32c5"
+ESP_IDF_VERSION = "v5.5.4"

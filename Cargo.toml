@@ -1,0 +1,17 @@
+# One workspace for all steps, so ESP-IDF downloads and builds once: run a step
+# with `cargo run --release` from its directory.
+[workspace]
+resolver = "2"
+members = ["common", "01-hello"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true    # Symbols are nice, and they don't increase the size on flash
+opt-level = "z"
+lto = true
+codegen-units = 1
