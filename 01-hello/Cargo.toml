@@ -10,6 +10,7 @@ log = "0.4"
 # Needed directly, not just through `common`: build.rs only gets the ESP-IDF
 # linker arguments from a direct dependency.
 esp-idf-svc = "0.53"
+iroh = { version = "1.3", default-features = false }
 
 [build-dependencies]
 embuild = "0.33"

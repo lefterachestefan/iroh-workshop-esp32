@@ -2,7 +2,9 @@
 # with `cargo run --release` from its directory.
 [workspace]
 resolver = "2"
-members = ["common", "01-hello"]
+members = ["common", "protocol", "01-hello", "02-light", "03-identity", "04-button"]
+# The web pages build for the browser, not the ESP32.
+exclude = ["web"]
 
 [profile.release]
 opt-level = "s"
@@ -15,3 +17,9 @@ debug = true    # Symbols are nice, and they don't increase the size on flash
 opt-level = "z"
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+# irpc with ESP32 fixes (portable-atomic for 32-bit targets; irpc-iroh without
+# irpc's default features, which pull in ring). Not released yet.
+irpc = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }
+irpc-iroh = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }

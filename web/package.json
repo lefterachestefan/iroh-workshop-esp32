@@ -1,0 +1,9 @@
+{
+  "name": "workshop-web",
+  "private": true,
+  "scripts": {
+    "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ./target/wasm32-unknown-unknown/release/workshop_web.wasm --out-dir public/wasm --target web",
+    "serve": "python3 -m http.server 8080 --directory public"
+  },
+  "license": "MIT OR Apache-2.0"
+}

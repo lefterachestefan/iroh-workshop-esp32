@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Step 1: hello</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Step 1: hello</h1>
+      <p class="subtitle">Is the device reachable? It has no protocols yet, so it turns the connection away, and that answer is all we need.</p>
+      <div class="card">
+        <label for="endpoint-id">Endpoint id (from the serial console)</label>
+        <input id="endpoint-id" type="text" autocomplete="off" spellcheck="false" />
+        <button id="hello" type="button" disabled>say hello</button>
+        <output id="result" class="result"></output>
+      </div>
+      <p class="status" id="status">loading…</p>
+      <p><a href="./index.html">all steps</a></p>
+    </main>
+    <script type="module">
+      import { startNode, showError, clearError } from "./node.js";
+      const $ = (sel) => document.querySelector(sel);
+      const node = await startNode($("#status"));
+      $("#hello").disabled = false;
+      $("#hello").addEventListener("click", async () => {
+        const $result = $("#result");
+        clearError($result);
+        $result.textContent = "dialing…";
+        try {
+          $result.textContent = await node.hello($("#endpoint-id").value);
+        } catch (err) {
+          showError($result, err);
+        }
+      });
+    </script>
+  </body>
+</html>

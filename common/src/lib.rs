@@ -21,7 +21,7 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::hal::gpio::Pins;
 use esp_idf_svc::hal::modem::Modem;
 use esp_idf_svc::hal::peripherals::Peripherals;
-use esp_idf_svc::nvs::EspDefaultNvsPartition;
+use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 use esp_idf_svc::sntp::{EspSntp, SyncStatus};
 use esp_idf_svc::wifi::{BlockingWifi, ClientConfiguration, Configuration, EspWifi};
 use iroh::tls::CaTlsConfig;
@@ -30,7 +30,9 @@ use log::{info, warn};
 /// `SSID:PASSWORD`, set when building: `WIFI_CONFIG='SSID:PASSWORD' cargo run --release`.
 const WIFI_CONFIG: &str = match option_env!("WIFI_CONFIG") {
     Some(value) => value,
-    None => panic!("WIFI_CONFIG is not set. Build with WIFI_CONFIG='SSID:PASSWORD' cargo run --release"),
+    None => {
+        panic!("WIFI_CONFIG is not set. Build with WIFI_CONFIG='SSID:PASSWORD' cargo run --release")
+    }
 };
 
 /// The parts of the board the steps use.
@@ -50,10 +52,7 @@ pub fn init() -> Board {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     // eventfd, which tokio's I/O driver (mio) needs.
-    let eventfd_config = esp_idf_svc::sys::esp_vfs_eventfd_config_t {
-        max_fds: 5,
-        ..Default::default()
-    };
+    let eventfd_config = esp_idf_svc::sys::esp_vfs_eventfd_config_t { max_fds: 5 };
     unsafe { esp_idf_svc::sys::esp_vfs_eventfd_register(&eventfd_config) };
 
     let peripherals = Peripherals::take().expect("Failed to take peripherals");
@@ -96,7 +95,12 @@ pub fn connect_wifi(
     wifi.start().expect("Failed to start WiFi");
     wifi.connect().expect("Failed to connect to WiFi");
     wifi.wait_netif_up().expect("Failed to get an IP address");
-    let ip = wifi.wifi().sta_netif().get_ip_info().expect("No IP info").ip;
+    let ip = wifi
+        .wifi()
+        .sta_netif()
+        .get_ip_info()
+        .expect("No IP info")
+        .ip;
     info!("WiFi connected, IP {ip}");
 
     // The clock starts at 1970; relay and discovery need the real time.
@@ -116,6 +120,24 @@ pub fn connect_wifi(
         _sntp: sntp,
         ip: Ipv4Addr::from(ip.octets()),
     }
+}
+
+/// The endpoint's secret key, generated on first boot and kept in NVS, so the
+/// endpoint id stays the same across restarts. Call after [`connect_wifi`]: the
+/// hardware RNG is only truly random with the radio on.
+pub fn load_or_create_secret_key(nvs: EspDefaultNvsPartition) -> iroh::SecretKey {
+    let nvs = EspNvs::new(nvs, "workshop", true).expect("Failed to open NVS");
+    let mut bytes = [0u8; 32];
+    match nvs.get_blob("secret", &mut bytes) {
+        Ok(Some(stored)) if stored.len() == 32 => return iroh::SecretKey::from_bytes(&bytes),
+        Ok(_) => info!("No secret key yet, generating one"),
+        // Don't paper over this with a new key: that would change the endpoint id.
+        Err(e) => panic!("Failed to read the secret key: {e}"),
+    }
+    let key = iroh::SecretKey::generate();
+    nvs.set_blob("secret", &key.to_bytes())
+        .expect("Failed to store the secret key");
+    key
 }
 
 /// An endpoint builder set up for the ESP32: pure-Rust crypto, small QUIC

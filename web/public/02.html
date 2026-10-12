@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Step 2: light switch</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Step 2: light switch</h1>
+      <p class="subtitle">Switch the LED over iroh. The device gets a new endpoint id on every start, so paste it each time.</p>
+      <div class="card">
+        <label for="endpoint-id">Endpoint id (from the serial console)</label>
+        <input id="endpoint-id" type="text" autocomplete="off" spellcheck="false" />
+        <button id="connect" type="button" disabled>connect</button>
+      </div>
+      <div class="card">
+        <div class="light" id="light"></div>
+        <div class="row">
+          <button id="on" type="button" disabled>on</button>
+          <button id="off" type="button" disabled>off</button>
+        </div>
+        <output id="result" class="result"></output>
+      </div>
+      <p class="status" id="status">loading…</p>
+      <p><a href="./index.html">all steps</a></p>
+    </main>
+    <script type="module">
+      import { lightPage } from "./light.js";
+      lightPage({ version: 1 });
+    </script>
+  </body>
+</html>

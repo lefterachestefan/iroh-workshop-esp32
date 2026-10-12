@@ -1,0 +1,5 @@
+# The pages build for the browser with stable Rust; the workspace's nightly is
+# only needed for the ESP32.
+[toolchain]
+channel = "stable"
+targets = ["wasm32-unknown-unknown"]

@@ -31,18 +31,16 @@ impl Resolver for StdDnsResolver {
         Box::pin(async move {
             let h = strip_fqdn_dot(&host).to_string();
             debug!("[std-dns] lookup_ipv4: {h}");
-            let addrs = tokio::task::spawn_blocking(move || {
-                format!("{h}:0").to_socket_addrs()
-            })
-            .await
-            .map_err(|e| {
-                warn!("[std-dns] lookup_ipv4 {host}: spawn failed: {e}");
-                e!(DnsError::NoResponse)
-            })?
-            .map_err(|e| {
-                warn!("[std-dns] lookup_ipv4 {host}: getaddrinfo failed: {e}");
-                e!(DnsError::NoResponse)
-            })?;
+            let addrs = tokio::task::spawn_blocking(move || format!("{h}:0").to_socket_addrs())
+                .await
+                .map_err(|e| {
+                    warn!("[std-dns] lookup_ipv4 {host}: spawn failed: {e}");
+                    e!(DnsError::NoResponse)
+                })?
+                .map_err(|e| {
+                    warn!("[std-dns] lookup_ipv4 {host}: getaddrinfo failed: {e}");
+                    e!(DnsError::NoResponse)
+                })?;
 
             let v4: Vec<Ipv4Addr> = addrs
                 .filter_map(|a| match a.ip() {
@@ -65,18 +63,16 @@ impl Resolver for StdDnsResolver {
         Box::pin(async move {
             let h = strip_fqdn_dot(&host).to_string();
             debug!("[std-dns] lookup_ipv6: {h}");
-            let addrs = tokio::task::spawn_blocking(move || {
-                format!("{h}:0").to_socket_addrs()
-            })
-            .await
-            .map_err(|e| {
-                warn!("[std-dns] lookup_ipv6 {host}: spawn failed: {e}");
-                e!(DnsError::NoResponse)
-            })?
-            .map_err(|e| {
-                warn!("[std-dns] lookup_ipv6 {host}: getaddrinfo failed: {e}");
-                e!(DnsError::NoResponse)
-            })?;
+            let addrs = tokio::task::spawn_blocking(move || format!("{h}:0").to_socket_addrs())
+                .await
+                .map_err(|e| {
+                    warn!("[std-dns] lookup_ipv6 {host}: spawn failed: {e}");
+                    e!(DnsError::NoResponse)
+                })?
+                .map_err(|e| {
+                    warn!("[std-dns] lookup_ipv6 {host}: getaddrinfo failed: {e}");
+                    e!(DnsError::NoResponse)
+                })?;
 
             let v6: Vec<Ipv6Addr> = addrs
                 .filter_map(|a| match a.ip() {

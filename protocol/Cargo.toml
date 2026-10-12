@@ -1,0 +1,13 @@
+[package]
+name = "light-protocol"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "The light switch protocols, shared by the devices and the web pages"
+
+[dependencies]
+irpc = { version = "0.17", default-features = false, features = ["rpc", "derive", "spans"] }
+serde = { version = "1", features = ["derive"] }
+# The code irpc's macro generates refers to `tracing` (with the `spans` feature,
+# which irpc-iroh turns on anyway).
+tracing = "0.1"

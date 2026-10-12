@@ -1,0 +1,29 @@
+[package]
+name = "workshop-web"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Web pages for the workshop steps: iroh in the browser, over a relay"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Pinned to the wasm-bindgen CLI version; crate and CLI must match exactly.
+wasm-bindgen = "=0.2.126"
+wasm-bindgen-futures = "0.4"
+console_error_panic_hook = "0.1.7"
+js-sys = "0.3"
+# iroh in the browser: no UDP there, so it reaches the devices over a relay.
+iroh = { version = "1.3", default-features = false, features = ["tls-ring"] }
+irpc = { version = "0.17", default-features = false, features = ["rpc", "derive", "spans"] }
+irpc-iroh = "0.17"
+light-protocol = { path = "../protocol" }
+# wasm32 has no OS RNG; route getrandom to the browser (see .cargo/config.toml).
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"

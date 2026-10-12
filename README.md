@@ -32,40 +32,84 @@ a good while. **Do this at home**, not on the conference WiFi.
    WIFI_CONFIG='your-ssid:your-password' cargo build --release
    ```
 
-   If that finishes, you're set.
+   If that finishes, you're set. (The other steps share that build.)
+5. For the web pages: `rustup target add wasm32-unknown-unknown` and
+   `cargo install wasm-bindgen-cli --version 0.2.126`.
+
+## The web pages
+
+Each step has a page that talks to the device: iroh compiled to WebAssembly,
+running in the browser and reaching the device over a relay (browsers can't send
+UDP). Build and serve them once:
+
+```sh
+cd web
+npm run build
+npm run serve   # http://localhost:8080
+```
+
+Use Chrome, Firefox or Safari; any of them works for these pages.
 
 ## Steps
 
-### 01-hello
-
-Join WiFi, start an iroh endpoint, and print its endpoint id: the public key
-anyone can dial it with.
+Run a step from its directory; `cargo run` flashes the board over USB and opens
+the serial monitor:
 
 ```sh
 cd 01-hello
 WIFI_CONFIG='your-ssid:your-password' cargo run --release
 ```
 
-`cargo run` flashes the board over USB and opens the serial monitor. After a few
-seconds:
+Each step's `main.rs` is short; the boilerplate (WiFi, an iroh endpoint sized
+for a microcontroller) is in [`common/`](common/src/lib.rs). Compare a step
+with the previous one (`diff 02-light/src/main.rs 03-identity/src/main.rs`) to
+see what's new.
+
+### 01-hello: an endpoint
+
+Join WiFi, start an iroh endpoint, and print its endpoint id: the public key
+anyone can dial it with.
 
 ```text
 I (…) hello: Hello from iroh! My endpoint id is 5a1f…
 ```
 
-There's no stored key yet, so every start prints a different id.
+There's no stored key yet, so every start prints a different id. Paste it into
+**page 1**: the device answers, but turns the connection away, since it doesn't
+offer any protocol yet.
 
-The boilerplate (WiFi, an iroh endpoint sized for a microcontroller) is in
-[`common/`](common/src/lib.rs), so each step's `main.rs` only shows what's new.
+### 02-light: a protocol
+
+The device offers a protocol: switch the LED, ask whether it's on. The protocol
+is an enum in [`protocol/src/v1.rs`](protocol/src/v1.rs), shared by the device and
+the page, so both speak the same Rust types; [irpc] takes care of the wire
+format. Each protocol has an ALPN, a name both sides agree on when connecting.
+
+Paste the endpoint id into **page 2** and switch the light.
+
+### 03-identity: a stable endpoint id
+
+The secret key is generated once and kept in flash (NVS), so the endpoint id
+survives restarts and reflashing. Same protocol as step 2; **page 3**
+remembers the id.
+
+### 04-button: watching
+
+The BOOT button toggles the light too, so its state can change without anyone
+asking. Protocol version 2 ([`protocol/src/v2.rs`](protocol/src/v2.rs), with its
+own ALPN) adds `Watch`: the device sends the current state, then every change.
+On **page 4**, press the button and watch the light follow.
 
 ## Layout
 
-All steps are one Cargo workspace, so ESP-IDF is built once for all of them.
+All devices are one Cargo workspace, so ESP-IDF is built once for all of them.
 
 | Path | What |
 |---|---|
-| `common/` | WiFi, time, and the iroh endpoint builder shared by all steps |
-| `01-hello/` | step 1 |
+| `common/` | WiFi, time, the stored key, and the iroh endpoint builder |
+| `protocol/` | the light protocols, version 1 (steps 2, 3) and 2 (step 4) |
+| `01-hello/` … `04-button/` | the steps |
+| `web/` | the pages, one per step (not part of the workspace: it builds for the browser) |
 | `sdkconfig.defaults` | ESP-IDF settings for all steps (PSRAM, buffer sizes, ...) |
 | `.cargo/config.toml` | target, chip (`MCU`), and the flash command |
 
@@ -79,4 +123,5 @@ All steps are one Cargo workspace, so ESP-IDF is built once for all of them.
   `cargo run` command line.
 
 [iroh]: https://www.iroh.computer
+[irpc]: https://docs.rs/irpc
 [Seeed Studio XIAO ESP32-C5]: https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C5-p-6609.html

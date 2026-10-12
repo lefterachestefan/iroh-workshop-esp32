@@ -3,4 +3,4 @@
 # for build-std (the espidf targets have no prebuilt std), pinned so everyone
 # builds with the same, tested one.
 channel = "nightly-2026-09-03"
-components = ["rust-src"]
+components = ["rust-src", "rustfmt", "clippy"]

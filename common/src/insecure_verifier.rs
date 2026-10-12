@@ -14,10 +14,10 @@
 use std::sync::Arc;
 
 use rustls::{
-    DigitallySignedStruct, SignatureScheme,
     client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
     crypto::CryptoProvider,
     pki_types::{CertificateDer, ServerName, UnixTime},
+    DigitallySignedStruct, SignatureScheme,
 };
 
 /// Builds the callback for [`CaTlsConfig::custom_server_cert_verifier`] that
