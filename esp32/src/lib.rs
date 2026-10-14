@@ -59,12 +59,10 @@ pub fn init() -> Board {
         let _ = logger.filter().set_target_level(target, log::LevelFilter::Error);
     }
 
-    // eventfd, which tokio's I/O driver (mio) needs.
-    let eventfd_config = esp_idf_svc::sys::esp_vfs_eventfd_config_t { max_fds: 5 };
-    unsafe { esp_idf_svc::sys::esp_vfs_eventfd_register(&eventfd_config) };
-
     // Running out of PSRAM reboots; see `on_alloc_failed`.
     unsafe { esp_idf_svc::sys::heap_caps_register_failed_alloc_callback(Some(on_alloc_failed)) };
+
+    info!("Started after {}", reset_reason());
 
     let peripherals = Peripherals::take().expect("Failed to take peripherals");
     Board {
@@ -73,6 +71,31 @@ pub fn init() -> Board {
         pins: peripherals.pins,
         sys_loop: EspSystemEventLoop::take().expect("Failed to take event loop"),
         nvs: EspDefaultNvsPartition::take().expect("Failed to take NVS partition"),
+    }
+}
+
+/// Why the chip (re)started. After a crash whose message didn't make it to the
+/// serial console, this is the only clue.
+fn reset_reason() -> &'static str {
+    use esp_idf_svc::sys::*;
+    #[allow(non_upper_case_globals)]
+    match unsafe { esp_reset_reason() } {
+        esp_reset_reason_t_ESP_RST_POWERON => "power-on",
+        esp_reset_reason_t_ESP_RST_EXT => "external reset",
+        esp_reset_reason_t_ESP_RST_SW => "software reset",
+        esp_reset_reason_t_ESP_RST_PANIC => "a panic",
+        esp_reset_reason_t_ESP_RST_INT_WDT => "the interrupt watchdog",
+        esp_reset_reason_t_ESP_RST_TASK_WDT => "the task watchdog",
+        esp_reset_reason_t_ESP_RST_WDT => "a watchdog",
+        esp_reset_reason_t_ESP_RST_DEEPSLEEP => "deep sleep",
+        esp_reset_reason_t_ESP_RST_BROWNOUT => "a brownout",
+        esp_reset_reason_t_ESP_RST_SDIO => "an SDIO reset",
+        esp_reset_reason_t_ESP_RST_USB => "a USB reset",
+        esp_reset_reason_t_ESP_RST_JTAG => "a JTAG reset",
+        esp_reset_reason_t_ESP_RST_EFUSE => "an eFuse error",
+        esp_reset_reason_t_ESP_RST_PWR_GLITCH => "a power glitch",
+        esp_reset_reason_t_ESP_RST_CPU_LOCKUP => "a CPU lockup",
+        _ => "an unknown reset",
     }
 }
 
@@ -222,6 +245,14 @@ pub use esp32_macros::main;
 /// ESP32. `#[tokio::main]` can't set the blocking pool's size or stack, hence
 /// [`main`].
 pub fn block_on<F: std::future::Future>(future: F) -> F::Output {
+    // eventfd, which tokio's I/O driver (mio) needs. Here rather than in
+    // `init`: `#[esp32::main]` builds the runtime before `main` calls `init`.
+    static EVENTFD: std::sync::Once = std::sync::Once::new();
+    EVENTFD.call_once(|| {
+        let config = esp_idf_svc::sys::esp_vfs_eventfd_config_t { max_fds: 5 };
+        esp_idf_svc::sys::esp!(unsafe { esp_idf_svc::sys::esp_vfs_eventfd_register(&config) })
+            .expect("Failed to register eventfd");
+    });
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .max_blocking_threads(1)

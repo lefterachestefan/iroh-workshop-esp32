@@ -177,17 +177,25 @@ cargo run --release
 
 Page 5 needs Chrome or Edge for Web Bluetooth.
 
+Step 5 builds on its own, outside the steps' workspace: it needs Bluetooth,
+and with Bluetooth compiled in, the other steps lose their direct connections.
+So its first build compiles ESP-IDF again, with its own
+[`sdkconfig.defaults`](05-lamp/sdkconfig.defaults) on top of the shared one.
+
 ## Layout
 
-All devices are one Cargo workspace, so ESP-IDF is built once for all of them.
+Steps 1 to 4 are one Cargo workspace, so ESP-IDF is built once for all of
+them. Step 5 has its own build, see above.
 
 | Path | What |
 |---|---|
 | `esp32/` | WiFi, time, the stored key, and the `esp32::N0` endpoint preset |
 | `protocol/` | the light protocols, version 1 (step 3), 2 (step 4) and 3 (step 5) |
-| `01-hello/` … `05-lamp/` | the steps |
+| `01-hello/` … `04-button/` | the steps |
+| `05-lamp/` | the demo, with its own build and Bluetooth settings |
 | `web/` | the pages, one per step (not part of the workspace: it builds for the browser) |
 | `sdkconfig.defaults` | ESP-IDF settings for all steps (PSRAM, buffer sizes, ...) |
+| `05-lamp/sdkconfig.defaults` | Bluetooth, on top of those, for step 5 only |
 | `.cargo/config.toml` | target, chip (`MCU`), and the flash command |
 
 ## Troubleshooting

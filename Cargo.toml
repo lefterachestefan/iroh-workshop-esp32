@@ -2,10 +2,11 @@
 # with `cargo run --release` from its directory.
 [workspace]
 resolver = "2"
-members = ["esp32", "esp32/macros", "protocol", "01-hello", "02-identity", "03-light", "04-button", "05-lamp"]
+members = ["esp32", "esp32/macros", "protocol", "01-hello", "02-identity", "03-light", "04-button"]
 # The web pages build for the browser and the CLI for your computer, not the
-# ESP32.
-exclude = ["web", "cli"]
+# ESP32. Step 5 needs Bluetooth, which the other steps shouldn't carry, so it
+# has its own ESP-IDF configuration and build.
+exclude = ["web", "cli", "05-lamp"]
 
 [profile.release]
 # Speed, not size: the app is ~4 MB of 8 MB flash, and the certificate checks
@@ -27,7 +28,3 @@ codegen-units = 1
 # irpc's default features, which pull in ring). Not released yet.
 irpc = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }
 irpc-iroh = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }
-# esp32-nimble 0.13 (for step 5's BLE provisioning) doesn't build against
-# ESP-IDF v5.5 on the C5: os_mempool_init got an r_ prefix there. A copy with
-# that fixed, until it's upstream.
-esp32-nimble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65" }

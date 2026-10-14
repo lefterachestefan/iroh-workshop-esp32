@@ -382,21 +382,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
- "cipher 0.5.2",
  "cpufeatures 0.3.1",
  "rand_core 0.10.1",
-]
-
-[[package]]
-name = "chacha20poly1305"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b89e1c441e926b9c82a8d023f6e1b7ae0adcfaa7d621814e4d60789bac751cb"
-dependencies = [
- "aead 0.6.1",
- "chacha20",
- "cipher 0.5.2",
- "poly1305",
 ]
 
 [[package]]
@@ -1239,27 +1226,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp32-nimble"
-version = "0.13.0"
-source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=dbf4e3d25fe759af434d09c7b5640b7ecb978e65#dbf4e3d25fe759af434d09c7b5640b7ecb978e65"
-dependencies = [
- "anyhow",
- "bitflags 2.13.2",
- "bstr",
- "cfg-if",
- "embassy-sync",
- "embuild",
- "esp-idf-svc",
- "heapless",
- "log",
- "num_enum",
- "once_cell",
- "uuid",
- "zerocopy",
- "zerocopy-derive",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1658,23 +1624,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc627f471c528ff0c4a49e1d5e60450c8f6461dd6d10ba9dcd3a61d3dff7728d"
 dependencies = [
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "hpke"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5324110b02044183df000f0bd7d2d7e61f1000631508627e77f63983b6fdffb"
-dependencies = [
- "aead 0.6.1",
- "chacha20poly1305",
- "hkdf",
- "hybrid-array",
- "rand_core 0.10.1",
- "sha2",
- "subtle",
- "x25519-dalek",
- "zeroize",
 ]
 
 [[package]]
@@ -2125,33 +2074,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "iroh-provision"
-version = "0.1.0"
-source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=dbf4e3d25fe759af434d09c7b5640b7ecb978e65#dbf4e3d25fe759af434d09c7b5640b7ecb978e65"
-dependencies = [
- "data-encoding",
- "hpke",
- "iroh-base",
- "log",
- "n0-error",
- "postcard",
- "serde",
-]
-
-[[package]]
-name = "iroh-provision-esp-idf"
-version = "0.1.0"
-source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=dbf4e3d25fe759af434d09c7b5640b7ecb978e65#dbf4e3d25fe759af434d09c7b5640b7ecb978e65"
-dependencies = [
- "embuild",
- "esp-idf-svc",
- "esp32-nimble",
- "iroh-provision",
- "log",
- "n0-error",
-]
-
-[[package]]
 name = "iroh-relay"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2355,23 +2277,6 @@ name = "konst_macro_rules"
 version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4933f3f57a8e9d9da04db23fb153356ecaf00cbd14aee46279c33dc80925c37"
-
-[[package]]
-name = "lamp"
-version = "0.1.0"
-dependencies = [
- "embuild",
- "esp-idf-svc",
- "esp32",
- "iroh",
- "iroh-provision",
- "iroh-provision-esp-idf",
- "irpc",
- "irpc-iroh",
- "light-protocol",
- "log",
- "tokio",
-]
 
 [[package]]
 name = "lazy_static"
@@ -3142,16 +3047,6 @@ dependencies = [
  "quick-xml",
  "serde",
  "time",
-]
-
-[[package]]
-name = "poly1305"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e2d0073b297041425c7c3df6eb4792d598a15323fe63346852b092eca02904c"
-dependencies = [
- "cpufeatures 0.3.1",
- "universal-hash 0.6.1",
 ]
 
 [[package]]
@@ -4501,12 +4396,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
-name = "uuid"
-version = "1.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cc1186384beb7dd8eedea376413fd654937285ea6c9cfbb928dc3043ea4b606"
-
-[[package]]
 name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5076,7 +4965,6 @@ checksum = "e7e8131a03190127fb2263afc72b322ecadae46b6ff8c6f399ff5d02f5559af6"
 dependencies = [
  "curve25519-dalek",
  "rand_core 0.10.1",
- "zeroize",
 ]
 
 [[package]]

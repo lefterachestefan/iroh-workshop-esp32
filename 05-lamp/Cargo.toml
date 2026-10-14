@@ -21,3 +21,29 @@ iroh-provision-esp-idf = { git = "https://github.com/n0-computer/iroh-esp32-exam
 
 [build-dependencies]
 embuild = "0.33"
+
+# Not part of the steps' workspace (see ../Cargo.toml): Bluetooth needs its own
+# ESP-IDF configuration, so this step builds ESP-IDF on its own.
+[package.metadata.esp-idf-sys]
+esp_idf_sdkconfig_defaults = ["../sdkconfig.defaults", "sdkconfig.defaults"]
+
+# The same as the workspace's.
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[patch.crates-io]
+irpc = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }
+irpc-iroh = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }
+# esp32-nimble 0.13 doesn't build against ESP-IDF v5.5 on the C5:
+# os_mempool_init got an r_ prefix there. A copy with that fixed, until it's
+# upstream.
+esp32-nimble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65" }
