@@ -3,8 +3,34 @@
 Peer-to-peer networking with [iroh] on ESP32 microcontrollers, in small steps.
 Each step is a directory with its own program; you can jump to any of them.
 
-The board is the [Seeed Studio XIAO ESP32-C5]: RISC-V, 8 MB flash, 8 MB PSRAM,
-dual-band WiFi 6, BLE.
+## Hardware
+
+![XIAO ESP32-C5 photo]
+
+The board is the [Seeed Studio XIAO ESP32-C5], a thumbnail-sized (21 × 17.8 mm)
+board around Espressif's ESP32-C5 chip:
+
+| | |
+|---|---|
+| CPU | 32-bit RISC-V, single core, 240 MHz |
+| RAM | 384 KB on-chip SRAM, plus 8 MB PSRAM. iroh's heap lives in the PSRAM. |
+| Flash | 8 MB. A step's firmware is about 4 MB. |
+| Radio | dual-band WiFi 6 (2.4 and 5 GHz), Bluetooth LE 5 |
+| USB | USB-C, for power, flashing and the serial log |
+| On board | a yellow user LED on GPIO27 (lit when the pin is low), a BOOT button on GPIO28 (reads low while pressed), a reset button |
+
+Steps 1 to 4 need nothing but the board. The LED is the light in steps 3 and
+4, and BOOT is the button in step 4. Step 5 adds a photoresistor, a push button
+and a lamp; the wiring is in [`05-lamp/src/main.rs`](05-lamp/src/main.rs).
+
+Two things that trip people up:
+
+- **Plug in the antenna.** The board comes with an external antenna on a tiny
+  U.FL connector. Without it, WiFi barely works.
+- **Use a USB-C cable that carries data.** A charge-only cable powers the board,
+  but `espflash` won't find it.
+
+For the full pinout, see Seeed's [getting started page].
 
 ## Before the workshop
 
@@ -181,4 +207,6 @@ All devices are one Cargo workspace, so ESP-IDF is built once for all of them.
 [iroh]: https://www.iroh.computer
 [irpc]: https://docs.rs/irpc
 [Seeed Studio XIAO ESP32-C5]: https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C5-p-6609.html
+[XIAO ESP32-C5 photo]: https://files.seeedstudio.com/wiki/XIAO_ESP32C5/Getting_started/Seeed-Studio-XIAO-ESP32C5_Start.jpg
+[getting started page]: https://wiki.seeedstudio.com/xiao_esp32c5_getting_started/
 [iroh-provision]: https://github.com/n0-computer/iroh-esp32-examples/tree/provisioning/provisioning
