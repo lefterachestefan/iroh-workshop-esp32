@@ -143,7 +143,7 @@ On **page 4**, press the button and watch the light follow.
 Not one to build at the workshop: this is where the steps lead. A lamp you
 could put on a shelf, with:
 
-- **WiFi over Bluetooth** instead of `WIFI_CONFIG`. On first boot the device
+- **WiFi provisioning over Bluetooth** instead of `WIFI_CONFIG`. On first boot the device
   advertises as `lamp-<short endpoint id>`; **page 5** sends it a network,
   sealed with HPKE to its endpoint id so only that device can read it, and
   gets back a pairing ticket (which holds the endpoint id, so it can connect
