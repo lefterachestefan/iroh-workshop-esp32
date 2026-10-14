@@ -23,7 +23,9 @@ mod sensor;
 
 use std::time::Duration;
 
-use esp_idf_svc::hal::gpio::{Output, OutputPin, PinDriver, Pull};
+use esp_idf_svc::eventloop::EspSystemEventLoop;
+use esp_idf_svc::hal::gpio::{AnyIOPin, AnyOutputPin, Output, OutputPin, PinDriver, Pull};
+use esp_idf_svc::hal::modem::Modem;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs, NvsDefault};
 use iroh::protocol::Router;
 use iroh_provision::{device, DeviceInfo};
@@ -61,25 +63,13 @@ const REPORT_STEP: u8 = 2;
 async fn main() {
     let board = esp32::init();
 
-    // Provisioning. The user LED blinks slowly while waiting for credentials
-    // over Bluetooth, fast while joining WiFi, and goes off once joined.
-    watch_reset_button(board.pins.gpio28.into(), board.nvs.clone());
-    let mut wifi = StationWifi::start(board.modem, board.sys_loop, board.nvs.clone())
-        .expect("Failed to start WiFi");
-    let mut storage = NvsStorage::new(board.nvs.clone()).expect("Failed to open NVS");
-    // After starting WiFi: the RNG is only truly random with the radio on.
-    let secret_key = device::load_or_create_identity(&mut storage, fill_random)
-        .expect("Failed to load the identity");
-    // Compare this with what the provisioning page shows.
-    info!("Endpoint id {}", secret_key.public());
-    let mut status_led =
-        BlinkingLed::new(board.pins.gpio27.into(), true).expect("Failed to set up the LED");
-    let info = DeviceInfo { kind: KIND.into() };
-    let joined = join_or_provision(&mut storage, &mut wifi, &secret_key, &info, &mut status_led)
-        .expect("Failed to provision");
-    info!("Joined {:?}, IP {}", joined.ssid, joined.ip);
-    // From now on, rejoin whichever stored network is around when WiFi drops.
-    keep_connected(wifi, &mut storage, status_led);
+    let secret_key = provision_wifi(
+        board.modem,
+        board.sys_loop,
+        board.nvs.clone(),
+        board.pins.gpio28.into(),
+        board.pins.gpio27.into(),
+    );
     let _sntp = esp32::sync_clock();
 
     let mut lamp = Lamp::new(board.pins.gpio10, board.nvs);
@@ -193,6 +183,38 @@ async fn main() {
             watchers = still_watching;
         }
     }
+}
+
+/// Join WiFi, and return the device's identity (made on first boot, kept in
+/// NVS). With stored networks, join the strongest one in range; without, wait
+/// for credentials over Bluetooth first. From then on, rejoin whichever stored
+/// network is around when WiFi drops.
+///
+/// Holding `boot_button` for 5 seconds forgets the networks. `status_led`
+/// blinks slowly while waiting for credentials, fast while joining, and is off
+/// once joined.
+fn provision_wifi(
+    modem: Modem<'static>,
+    sys_loop: EspSystemEventLoop,
+    nvs: EspDefaultNvsPartition,
+    boot_button: AnyIOPin<'static>,
+    status_led: AnyOutputPin<'static>,
+) -> iroh::SecretKey {
+    watch_reset_button(boot_button, nvs.clone());
+    let mut wifi = StationWifi::start(modem, sys_loop, nvs.clone()).expect("Failed to start WiFi");
+    let mut storage = NvsStorage::new(nvs).expect("Failed to open NVS");
+    // After starting WiFi: the RNG is only truly random with the radio on.
+    let secret_key = device::load_or_create_identity(&mut storage, fill_random)
+        .expect("Failed to load the identity");
+    // Compare this with what the provisioning page shows.
+    info!("Endpoint id {}", secret_key.public());
+    let mut status_led = BlinkingLed::new(status_led, true).expect("Failed to set up the LED");
+    let info = DeviceInfo { kind: KIND.into() };
+    let joined = join_or_provision(&mut storage, &mut wifi, &secret_key, &info, &mut status_led)
+        .expect("Failed to provision");
+    info!("Joined {:?}, IP {}", joined.ssid, joined.ip);
+    keep_connected(wifi, &mut storage, status_led);
+    secret_key
 }
 
 /// The light, and its settings, which survive a restart.
