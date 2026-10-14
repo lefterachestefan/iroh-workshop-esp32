@@ -5,7 +5,7 @@ Each step is a directory with its own program; you can jump to any of them.
 
 ## Hardware
 
-![XIAO ESP32-C5 photo]
+<img src="images/xiao-esp32-c5.png" alt="Seeed Studio XIAO ESP32-C5" width="200">
 
 The board is the [Seeed Studio XIAO ESP32-C5], a thumbnail-sized (21 × 17.8 mm)
 board around Espressif's ESP32-C5 chip:
@@ -14,7 +14,7 @@ board around Espressif's ESP32-C5 chip:
 |---|---|
 | CPU | 32-bit RISC-V, single core, 240 MHz |
 | RAM | 384 KB on-chip SRAM, plus 8 MB PSRAM. iroh's heap lives in the PSRAM. |
-| Flash | 8 MB. A step's firmware is about 4 MB. |
+| Flash | 8 MB |
 | Radio | dual-band WiFi 6 (2.4 and 5 GHz), Bluetooth LE 5 |
 | USB | USB-C, for power, flashing and the serial log |
 | On board | a yellow user LED on GPIO27 (lit when the pin is low), a BOOT button on GPIO28 (reads low while pressed), a reset button |
@@ -226,6 +226,5 @@ shall be dual licensed as above, without any additional terms or conditions.
 [iroh]: https://www.iroh.computer
 [irpc]: https://docs.rs/irpc
 [Seeed Studio XIAO ESP32-C5]: https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C5-p-6609.html
-[XIAO ESP32-C5 photo]: https://files.seeedstudio.com/wiki/XIAO_ESP32C5/Getting_started/Seeed-Studio-XIAO-ESP32C5_Start.jpg
 [getting started page]: https://wiki.seeedstudio.com/xiao_esp32c5_getting_started/
 [iroh-provision]: https://github.com/n0-computer/iroh-esp32-examples/tree/provisioning/provisioning
