@@ -1,4 +1,5 @@
-//! Times light switch requests to a device (step 3, or step 4 with `--v2`), to
+//! Times light switch requests to a device (step 3, step 4 with `--v2`, or
+//! step 5 with `--v3`), to
 //! see where the time
 //! goes: run it with `--relay-only` to take the same path as the browser, and
 //! without to let iroh go direct over the LAN.
@@ -14,7 +15,7 @@ use anyhow::Result;
 use clap::Parser;
 use iroh::{endpoint::presets, Endpoint, EndpointId};
 use irpc_iroh::IrohRemoteConnection;
-use light_protocol::{v1, v2};
+use light_protocol::{v1, v2, v3};
 
 #[derive(Parser)]
 struct Args {
@@ -32,12 +33,38 @@ struct Args {
     /// Speak protocol version 2, for step 4.
     #[arg(long)]
     v2: bool,
+    /// Speak protocol version 3, for step 5.
+    #[arg(long, conflicts_with = "v2")]
+    v3: bool,
+    /// Don't switch: print the lamp's state, then every change (step 5).
+    #[arg(long, requires = "v3")]
+    watch: bool,
+    /// Don't switch: switch automatic mode on or off (step 5).
+    #[arg(long, requires = "v3", value_parser = parse_on_off)]
+    auto: Option<bool>,
+    /// Don't switch: set how dark it has to get, in percent, before the lamp
+    /// switches on in automatic mode (step 5).
+    #[arg(long, requires = "v3", value_parser = clap::value_parser!(u8).range(0..=100))]
+    threshold: Option<u8>,
+    /// Don't switch: set how long, in ms, it has to stay past the threshold
+    /// before the lamp switches in automatic mode (step 5).
+    #[arg(long, requires = "v3")]
+    delay: Option<u16>,
 }
 
-/// Version 1 or 2 of the light protocol; `Set` is the same in both.
+fn parse_on_off(s: &str) -> Result<bool, String> {
+    match s {
+        "on" => Ok(true),
+        "off" => Ok(false),
+        _ => Err("on or off".into()),
+    }
+}
+
+/// Version 1, 2 or 3 of the light protocol; `Set` is the same in all of them.
 enum Light {
     V1(irpc::Client<v1::LightProtocol>),
     V2(irpc::Client<v2::LightProtocol>),
+    V3(irpc::Client<v3::LightProtocol>),
 }
 
 impl Light {
@@ -45,6 +72,7 @@ impl Light {
         Ok(match self {
             Light::V1(client) => client.rpc(v1::Set { on }).await?,
             Light::V2(client) => client.rpc(v2::Set { on }).await?,
+            Light::V3(client) => client.rpc(v3::Set { on }).await?.on,
         })
     }
 }
@@ -59,15 +87,53 @@ async fn main() -> Result<()> {
     let endpoint = builder.bind().await?;
 
     let start = Instant::now();
-    let alpn = if args.v2 { v2::ALPN } else { v1::ALPN };
+    let alpn = if args.v3 {
+        v3::ALPN
+    } else if args.v2 {
+        v2::ALPN
+    } else {
+        v1::ALPN
+    };
     let conn = endpoint.connect(args.endpoint_id, alpn).await?;
     println!("{} connected in {:?}", now(), start.elapsed());
     let remote = IrohRemoteConnection::new(conn.clone());
-    let light = if args.v2 {
+    let light = if args.v3 {
+        Light::V3(irpc::Client::boxed(remote))
+    } else if args.v2 {
         Light::V2(irpc::Client::boxed(remote))
     } else {
         Light::V1(irpc::Client::boxed(remote))
     };
+
+    if args.auto.is_some() || args.threshold.is_some() || args.delay.is_some() {
+        let Light::V3(client) = &light else {
+            unreachable!("the settings require --v3")
+        };
+        // All settings go together: change the given ones, keep the rest.
+        let mut settings = client.rpc(v3::Get).await?.settings;
+        if let Some(auto) = args.auto {
+            settings.auto = auto;
+        }
+        if let Some(threshold) = args.threshold {
+            settings.threshold = threshold;
+        }
+        if let Some(delay) = args.delay {
+            settings.delay_ms = delay;
+        }
+        print_state(&client.rpc(settings).await?);
+        return Ok(());
+    }
+
+    if args.watch {
+        let Light::V3(client) = &light else {
+            unreachable!("--watch requires --v3")
+        };
+        let mut states = client.server_streaming(v3::Watch, 4).await?;
+        while let Some(state) = states.recv().await? {
+            print_state(&state);
+        }
+        return Ok(());
+    }
 
     let mut times = Vec::with_capacity(args.count);
     for i in 0..args.count {
@@ -100,6 +166,27 @@ fn path(conn: &iroh::endpoint::Connection) -> String {
     };
     let kind = if path.is_relay() { "relay" } else { "direct" };
     format!("{kind} (rtt {:.1} ms)", ms(path.rtt()))
+}
+
+fn print_state(state: &v3::LightState) {
+    let settings = state.settings;
+    println!(
+        "{} light {:<3}  level {:>3}%  auto {:<3}  threshold {:>3}%  delay {} ms",
+        now(),
+        on_off(state.on),
+        state.level,
+        on_off(settings.auto),
+        settings.threshold,
+        settings.delay_ms,
+    );
+}
+
+fn on_off(on: bool) -> &'static str {
+    if on {
+        "on"
+    } else {
+        "off"
+    }
 }
 
 fn ms(d: Duration) -> f64 {

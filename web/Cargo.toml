@@ -25,8 +25,8 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 # pairing secret and the HPKE key).
 getrandom-04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
 # Step 5: provisioning WiFi over Web Bluetooth. Not released yet.
-iroh-provision = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65", features = ["client"] }
-iroh-provision-ble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65", features = ["web"] }
+iroh-provision = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "55b143157bc7e62d331432260c29b28171006190", features = ["client"] }
+iroh-provision-ble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "55b143157bc7e62d331432260c29b28171006190", features = ["web"] }
 web-sys = { version = "0.3", features = ["BluetoothDevice", "BluetoothRemoteGattServer"] }
 
 [profile.release]

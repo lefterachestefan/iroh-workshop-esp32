@@ -236,13 +236,45 @@ nav a {
   transition: width 0.3s;
 }
 
-/* The threshold: a tick across the bar. */
-.meter-mark {
+/* The threshold: a slider laid over the bar, whose handle is a tick across
+   it. The track is invisible, so the fill underneath shows through. */
+.meter-slider {
   position: absolute;
-  top: -0.25rem;
-  width: 2px;
-  height: 1.1rem;
-  margin-left: -1px;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1.6rem;
+  margin: 0;
+  transform: translateY(-50%);
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: ew-resize;
+}
+
+.meter-slider::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+
+.meter-slider::-moz-range-track {
+  background: transparent;
+}
+
+.meter-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 4px;
+  height: 1.3rem;
+  margin-top: 0.15rem;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.meter-slider::-moz-range-thumb {
+  width: 4px;
+  height: 1.3rem;
+  border: none;
+  border-radius: 2px;
   background: currentColor;
 }
 

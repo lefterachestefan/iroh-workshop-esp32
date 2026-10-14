@@ -16,8 +16,8 @@ irpc-iroh = "0.17"
 tokio = { version = "1", features = ["sync", "time", "macros"] }
 irpc = { version = "0.17", default-features = false, features = ["rpc"] }
 # WiFi provisioning over BLE, sealed to the endpoint id. Not released yet.
-iroh-provision = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65", features = ["device"] }
-iroh-provision-esp-idf = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65" }
+iroh-provision = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "55b143157bc7e62d331432260c29b28171006190", features = ["device"] }
+iroh-provision-esp-idf = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "55b143157bc7e62d331432260c29b28171006190" }
 
 [build-dependencies]
 embuild = "0.33"
@@ -46,4 +46,4 @@ irpc-iroh = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c
 # esp32-nimble 0.13 doesn't build against ESP-IDF v5.5 on the C5:
 # os_mempool_init got an r_ prefix there. A copy with that fixed, until it's
 # upstream.
-esp32-nimble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65" }
+esp32-nimble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "55b143157bc7e62d331432260c29b28171006190" }

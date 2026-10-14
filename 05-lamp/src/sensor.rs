@@ -1,5 +1,11 @@
-//! The photoresistor: a voltage divider into an ADC pin. More light, less
-//! resistance, higher voltage.
+//! The photoresistor: a voltage divider into an ADC pin, with the pin's
+//! internal pull-down as the other half, so it's the only part. More light,
+//! less resistance, higher voltage.
+//!
+//! The level is the raw reading scaled so that a bright lamp right next to the
+//! sensor reads 100%, not calibrated millivolts. Room light reads about 95%: the
+//! divider is nearly saturated by then, so the useful range is dark to room
+//! light, which is what a lamp needs.
 //!
 //! This talks to ESP-IDF's oneshot ADC driver directly: esp-idf-hal 0.46 has
 //! the ESP32-C5's ADC channels off by one (it puts GPIO1 on channel 1; it's
@@ -10,12 +16,14 @@ use esp_idf_svc::hal::gpio::Pin;
 use esp_idf_svc::sys::{
     adc_atten_t_ADC_ATTEN_DB_12, adc_bitwidth_t_ADC_BITWIDTH_12, adc_channel_t,
     adc_oneshot_chan_cfg_t, adc_oneshot_config_channel, adc_oneshot_del_unit,
-    adc_oneshot_io_to_channel, adc_oneshot_new_unit, adc_oneshot_read,
+    adc_oneshot_io_to_channel, adc_oneshot_new_unit, adc_oneshot_read, gpio_pulldown_en,
+    gpio_pullup_dis,
     adc_oneshot_unit_handle_t, adc_oneshot_unit_init_cfg_t, adc_unit_t, esp, EspError,
 };
 
-/// The largest 12-bit reading.
-const FULL_SCALE: f32 = 4095.0;
+/// The raw reading that counts as 100%: measured with a bright lamp right next
+/// to the photoresistor. Anything brighter is clamped.
+const FULL_SCALE: f32 = 3235.0;
 
 pub struct LightSensor {
     unit: adc_oneshot_unit_handle_t,
@@ -29,7 +37,8 @@ impl LightSensor {
     pub fn new(_adc: ADC1<'static>, pin: impl Pin + 'static) -> Result<Self, EspError> {
         let mut unit_id: adc_unit_t = 0;
         let mut channel: adc_channel_t = 0;
-        esp!(unsafe { adc_oneshot_io_to_channel(pin.pin().into(), &mut unit_id, &mut channel) })?;
+        let gpio = pin.pin() as i32;
+        esp!(unsafe { adc_oneshot_io_to_channel(gpio, &mut unit_id, &mut channel) })?;
         let mut unit = std::ptr::null_mut();
         let unit_config = adc_oneshot_unit_init_cfg_t {
             unit_id,
@@ -42,6 +51,11 @@ impl LightSensor {
             bitwidth: adc_bitwidth_t_ADC_BITWIDTH_12,
         };
         esp!(unsafe { adc_oneshot_config_channel(unit, channel, &channel_config) })?;
+        // The other half of the voltage divider: the internal pull-down
+        // (about 45 kΩ), instead of a resistor to GND. After configuring the
+        // channel, which resets the pin's pulls.
+        esp!(unsafe { gpio_pullup_dis(gpio) })?;
+        esp!(unsafe { gpio_pulldown_en(gpio) })?;
         Ok(Self {
             unit,
             channel,
@@ -54,11 +68,11 @@ impl LightSensor {
     pub fn read(&mut self) -> Result<f32, EspError> {
         let mut raw = 0;
         esp!(unsafe { adc_oneshot_read(self.unit, self.channel, &mut raw) })?;
-        let level = raw as f32 * 100.0 / FULL_SCALE;
-        // An exponential moving average: each reading counts 1/16. At one
-        // reading every 50 ms, that settles in about a second.
+        let level = (raw as f32 * 100.0 / FULL_SCALE).min(100.0);
+        // An exponential moving average: each reading counts 1/4. At one
+        // reading every 50 ms, it follows a change within about 0.2 seconds.
         let smoothed = match self.smoothed {
-            Some(previous) => previous + (level - previous) / 16.0,
+            Some(previous) => previous + (level - previous) / 4.0,
             None => level,
         };
         self.smoothed = Some(smoothed);

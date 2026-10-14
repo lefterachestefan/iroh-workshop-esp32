@@ -1226,7 +1226,7 @@ dependencies = [
 [[package]]
 name = "esp32-nimble"
 version = "0.13.0"
-source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=dbf4e3d25fe759af434d09c7b5640b7ecb978e65#dbf4e3d25fe759af434d09c7b5640b7ecb978e65"
+source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=55b143157bc7e62d331432260c29b28171006190#55b143157bc7e62d331432260c29b28171006190"
 dependencies = [
  "anyhow",
  "bitflags 2.13.2",
@@ -2090,7 +2090,7 @@ dependencies = [
 [[package]]
 name = "iroh-provision"
 version = "0.1.0"
-source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=dbf4e3d25fe759af434d09c7b5640b7ecb978e65#dbf4e3d25fe759af434d09c7b5640b7ecb978e65"
+source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=55b143157bc7e62d331432260c29b28171006190#55b143157bc7e62d331432260c29b28171006190"
 dependencies = [
  "data-encoding",
  "hpke",
@@ -2104,7 +2104,7 @@ dependencies = [
 [[package]]
 name = "iroh-provision-esp-idf"
 version = "0.1.0"
-source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=dbf4e3d25fe759af434d09c7b5640b7ecb978e65#dbf4e3d25fe759af434d09c7b5640b7ecb978e65"
+source = "git+https://github.com/n0-computer/iroh-esp32-examples?rev=55b143157bc7e62d331432260c29b28171006190#55b143157bc7e62d331432260c29b28171006190"
 dependencies = [
  "embuild",
  "esp-idf-svc",

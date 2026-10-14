@@ -14,9 +14,10 @@
 //!
 //! | Pin | GPIO | Connect to |
 //! |---|---|---|
-//! | D0 | 1 | photoresistor to 3V3, and 10 kΩ to GND |
-//! | D1 | 0 | push button to GND |
-//! | D4 | 23 | LED + resistor to GND, or a MOSFET for a bigger lamp |
+//! | D1 | 0 | photoresistor (D1 is its 3.3 V supply) |
+//! | D0 | 1 | photoresistor's other leg (ADC, internal pull-down) |
+//! | D9 | 9 | push button to GND |
+//! | D10 | 10 | LED + resistor to GND, or a MOSFET for a bigger lamp |
 
 mod sensor;
 
@@ -32,7 +33,7 @@ use iroh_provision_esp_idf::{
 };
 use irpc::channel::mpsc;
 use irpc_iroh::IrohProtocol;
-use light_protocol::v3::{LightMessage, LightProtocol, LightState, ALPN};
+use light_protocol::v3::{LightMessage, LightProtocol, LightState, Settings, ALPN};
 use log::{info, warn};
 use sensor::LightSensor;
 
@@ -47,9 +48,12 @@ const LONG_PRESS_TICKS: u32 = 20;
 /// In automatic mode, the lamp goes on below `threshold - MARGIN` and off above
 /// `threshold + MARGIN`, so a reading right at the threshold doesn't flicker.
 const MARGIN: f32 = 3.0;
-/// ... and only once it's been that dark (or bright) for 2 seconds, so a
-/// passing shadow doesn't switch it.
-const SETTLE_TICKS: u32 = 40;
+/// ... and only once it's been that dark (or bright) for `delay_ms`, a setting.
+/// The default, with the sensor's smoothing, reacts in about half a second, and
+/// a hand passing by doesn't switch it.
+const DEFAULT_DELAY_MS: u16 = 300;
+/// The longest delay a client can set.
+const MAX_DELAY_MS: u16 = 10_000;
 /// Watchers hear about the brightness when it changed by this much.
 const REPORT_STEP: u8 = 2;
 
@@ -78,8 +82,13 @@ async fn main() {
     keep_connected(wifi, &mut storage, status_led);
     let _sntp = esp32::sync_clock();
 
-    let mut lamp = Lamp::new(board.pins.gpio23, board.nvs);
-    let button = PinDriver::input(board.pins.gpio0, Pull::Up).expect("Failed to set up the button");
+    let mut lamp = Lamp::new(board.pins.gpio10, board.nvs);
+    let button = PinDriver::input(board.pins.gpio9, Pull::Up).expect("Failed to set up the button");
+    // D1, right next to D0, powers the photoresistor, so it needs only short
+    // wires. It draws well under a milliamp.
+    let mut sensor_supply =
+        PinDriver::output(board.pins.gpio0).expect("Failed to set up the sensor supply");
+    sensor_supply.set_high().expect("Failed to switch the sensor supply on");
     let mut sensor =
         LightSensor::new(board.adc1, board.pins.gpio1).expect("Failed to set up the sensor");
 
@@ -107,16 +116,12 @@ async fn main() {
         tokio::select! {
             Some(request) = requests.recv() => match request {
                 LightMessage::Set(request) => {
-                    lamp.set_auto(false);
+                    lamp.leave_auto();
                     lamp.switch(request.on);
                     request.tx.send(lamp.state).await.ok();
                 }
-                LightMessage::SetAuto(request) => {
-                    lamp.set_auto(request.auto);
-                    request.tx.send(lamp.state).await.ok();
-                }
-                LightMessage::SetThreshold(request) => {
-                    lamp.set_threshold(request.threshold);
+                LightMessage::Configure(request) => {
+                    lamp.configure(*request);
                     request.tx.send(lamp.state).await.ok();
                 }
                 LightMessage::Get(request) => {
@@ -136,12 +141,16 @@ async fn main() {
                     held += 1;
                     if held == LONG_PRESS_TICKS {
                         info!("Button held");
-                        lamp.set_auto(!lamp.state.auto);
+                        let settings = lamp.state.settings;
+                        lamp.configure(Settings {
+                            auto: !settings.auto,
+                            ..settings
+                        });
                     }
                 } else {
                     if held > 0 && held < LONG_PRESS_TICKS {
                         info!("Button pressed");
-                        lamp.set_auto(false);
+                        lamp.leave_auto();
                         lamp.switch(!lamp.state.on);
                     }
                     held = 0;
@@ -151,15 +160,16 @@ async fn main() {
                 match sensor.read() {
                     Ok(level) => {
                         lamp.report_level(level);
-                        let threshold = f32::from(lamp.state.threshold);
-                        let wants_switch = lamp.state.auto
+                        let settings = lamp.state.settings;
+                        let threshold = f32::from(settings.threshold);
+                        let wants_switch = settings.auto
                             && if lamp.state.on {
                                 level > threshold + MARGIN
                             } else {
                                 level < threshold - MARGIN
                             };
                         unsettled = if wants_switch { unsettled + 1 } else { 0 };
-                        if unsettled >= SETTLE_TICKS {
+                        if unsettled >= settle_ticks(settings.delay_ms) {
                             unsettled = 0;
                             lamp.switch(!lamp.state.on);
                         }
@@ -185,7 +195,7 @@ async fn main() {
     }
 }
 
-/// The light, and the settings that survive a restart (mode and threshold).
+/// The light, and its settings, which survive a restart.
 struct Lamp {
     state: LightState,
     pin: PinDriver<'static, Output>,
@@ -199,13 +209,24 @@ impl Lamp {
         let settings = EspNvs::new(nvs, "lamp", true).expect("Failed to open NVS");
         let auto = settings.get_u8("auto").ok().flatten().unwrap_or(0) != 0;
         let threshold = settings.get_u8("threshold").ok().flatten().unwrap_or(30);
-        info!("Automatic mode {}, threshold {threshold}%", on_off(auto));
+        let delay_ms = settings
+            .get_u16("delay_ms")
+            .ok()
+            .flatten()
+            .unwrap_or(DEFAULT_DELAY_MS);
+        info!(
+            "Automatic mode {}, threshold {threshold}%, delay {delay_ms} ms",
+            on_off(auto)
+        );
         Self {
             state: LightState {
                 on: false,
-                auto,
                 level: 0,
-                threshold,
+                settings: Settings {
+                    auto,
+                    threshold,
+                    delay_ms,
+                },
             },
             pin,
             settings,
@@ -226,27 +247,42 @@ impl Lamp {
         }
     }
 
-    fn set_auto(&mut self, auto: bool) {
-        if auto == self.state.auto {
-            return;
+    /// Take new settings, and keep the ones that changed.
+    fn configure(&mut self, new: Settings) {
+        let new = Settings {
+            threshold: new.threshold.min(100),
+            delay_ms: new.delay_ms.min(MAX_DELAY_MS),
+            ..new
+        };
+        let old = self.state.settings;
+        self.state.settings = new;
+        if new.auto != old.auto {
+            info!("Automatic mode {}", on_off(new.auto));
+            self.save_u8("auto", new.auto as u8);
+            if new.auto {
+                // Follow the sensor right away, rather than after the delay.
+                self.switch(self.state.level < new.threshold);
+            }
         }
-        self.state.auto = auto;
-        info!("Automatic mode {}", on_off(auto));
-        self.save("auto", auto as u8);
-        if auto {
-            // Follow the sensor right away, rather than after it settled.
-            self.switch(self.state.level < self.state.threshold);
+        if new.threshold != old.threshold {
+            info!("Threshold {}%", new.threshold);
+            self.save_u8("threshold", new.threshold);
+        }
+        if new.delay_ms != old.delay_ms {
+            info!("Delay {} ms", new.delay_ms);
+            if let Err(e) = self.settings.set_u16("delay_ms", new.delay_ms) {
+                warn!("Failed to save delay_ms: {e}");
+            }
         }
     }
 
-    fn set_threshold(&mut self, threshold: u8) {
-        let threshold = threshold.min(100);
-        if threshold == self.state.threshold {
-            return;
-        }
-        self.state.threshold = threshold;
-        info!("Threshold {threshold}%");
-        self.save("threshold", threshold);
+    /// Switching by hand leaves automatic mode.
+    fn leave_auto(&mut self) {
+        let settings = self.state.settings;
+        self.configure(Settings {
+            auto: false,
+            ..settings
+        });
     }
 
     /// Update the reported brightness, if it moved enough to be worth telling
@@ -258,11 +294,16 @@ impl Lamp {
         }
     }
 
-    fn save(&mut self, key: &str, value: u8) {
+    fn save_u8(&mut self, key: &str, value: u8) {
         if let Err(e) = self.settings.set_u8(key, value) {
             warn!("Failed to save {key}: {e}");
         }
     }
+}
+
+/// How many sensor ticks make `delay_ms`, at least one.
+fn settle_ticks(delay_ms: u16) -> u32 {
+    (u32::from(delay_ms)).div_ceil(TICK.as_millis() as u32).max(1)
 }
 
 fn on_off(on: bool) -> &'static str {

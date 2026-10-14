@@ -131,27 +131,32 @@ pub struct LightV3 {
     client: irpc::Client<v3::LightProtocol>,
 }
 
-/// The lamp's state, as the device reports it.
+/// The lamp's state, as the device reports it: the light, the sensor, and
+/// all settings.
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct LampState {
     /// Is the light on?
     pub on: bool,
-    /// Does the lamp follow the light sensor?
-    pub auto: bool,
     /// Brightness around the lamp, 0 (dark) to 100.
     pub level: u8,
+    /// Does the lamp follow the light sensor?
+    pub auto: bool,
     /// In automatic mode, the light goes on below this level.
     pub threshold: u8,
+    /// In automatic mode, how long it has to stay past the threshold before
+    /// the lamp switches.
+    pub delay_ms: u16,
 }
 
 impl From<v3::LightState> for LampState {
     fn from(s: v3::LightState) -> Self {
         LampState {
             on: s.on,
-            auto: s.auto,
             level: s.level,
-            threshold: s.threshold,
+            auto: s.settings.auto,
+            threshold: s.settings.threshold,
+            delay_ms: s.settings.delay_ms,
         }
     }
 }
@@ -163,13 +168,20 @@ impl LightV3 {
         Ok(self.client.rpc(v3::Set { on }).await.map_err(js_err)?.into())
     }
 
-    pub async fn set_auto(&self, auto: bool) -> Result<LampState, JsError> {
-        Ok(self.client.rpc(v3::SetAuto { auto }).await.map_err(js_err)?.into())
-    }
-
-    pub async fn set_threshold(&self, threshold: u8) -> Result<LampState, JsError> {
-        let request = v3::SetThreshold { threshold };
-        Ok(self.client.rpc(request).await.map_err(js_err)?.into())
+    /// Replace all settings at once. To change one, pass the others from the
+    /// last state.
+    pub async fn configure(
+        &self,
+        auto: bool,
+        threshold: u8,
+        delay_ms: u16,
+    ) -> Result<LampState, JsError> {
+        let settings = v3::Settings {
+            auto,
+            threshold,
+            delay_ms,
+        };
+        Ok(self.client.rpc(settings).await.map_err(js_err)?.into())
     }
 
     pub async fn get(&self) -> Result<LampState, JsError> {

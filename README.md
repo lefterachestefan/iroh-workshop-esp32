@@ -163,9 +163,10 @@ joining, and is off once joined.
 
 | XIAO pin | GPIO | Connect to |
 |---|---|---|
-| D0 | 1 | photoresistor to 3V3, and 10 kΩ to GND (ADC) |
-| D1 | 0 | push button to GND (internal pull-up) |
-| D4 | 23 | LED with a resistor to GND, or a logic-level MOSFET for a bigger lamp |
+| D1 | 0 | photoresistor (D1 is its 3.3 V supply) |
+| D0 | 1 | photoresistor's other leg (ADC, internal pull-down) |
+| D9 | 9 | push button to GND (internal pull-up) |
+| D10 | 10 | LED with a resistor to GND, or a logic-level MOSFET for a bigger lamp |
 
 Point the photoresistor away from the lamp: if it sees the lamp, automatic
 mode switches it off again. No `WIFI_CONFIG` needed:
@@ -235,4 +236,4 @@ shall be dual licensed as above, without any additional terms or conditions.
 [irpc]: https://docs.rs/irpc
 [Seeed Studio XIAO ESP32-C5]: https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C5-p-6609.html
 [getting started page]: https://wiki.seeedstudio.com/xiao_esp32c5_getting_started/
-[iroh-provision]: https://github.com/n0-computer/iroh-esp32-examples/tree/provisioning/provisioning
+[iroh-provision]: https://github.com/n0-computer/iroh-esp32-examples/tree/main/provisioning

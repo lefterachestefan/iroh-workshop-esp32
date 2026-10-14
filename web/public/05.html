@@ -44,15 +44,20 @@
             </div>
           </div>
         </div>
-        <div class="meter" aria-hidden="true">
+        <!-- The fill is the brightness; the slider's handle on top is the
+             threshold. -->
+        <div class="meter">
           <div class="meter-fill" id="level-fill"></div>
-          <div class="meter-mark" id="threshold-mark"></div>
+          <input id="threshold-slider" class="meter-slider" type="range" min="0" max="100" aria-label="on below this brightness" />
         </div>
         <div class="meter-labels">
           <span>brightness <b id="level">–</b>%</span>
           <span>on below <b id="threshold">–</b>%</span>
         </div>
-        <input id="threshold-slider" type="range" min="0" max="100" aria-label="threshold" />
+        <div class="meter-labels">
+          <span>switches after <b id="delay">–</b> ms</span>
+        </div>
+        <input id="delay-slider" type="range" min="0" max="2000" step="50" aria-label="delay" />
       </div>
       <output id="result" class="result"></output>
       <p class="status" id="status">loading…</p>

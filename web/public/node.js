@@ -10,12 +10,17 @@ export async function startNode(status) {
   return node;
 }
 
-/** Remember an input's value in localStorage under `key`, if given. */
-export function remember(input, key) {
+/**
+ * Remember an input's value in localStorage under `key`, if given. Trimmed,
+ * unless `trim` is false: spaces at the ends of a password are part of it.
+ */
+export function remember(input, key, { trim = true } = {}) {
   if (!key) return;
   try {
     input.value = localStorage.getItem(key) ?? "";
-    input.addEventListener("input", () => localStorage.setItem(key, input.value.trim()));
+    input.addEventListener("input", () =>
+      localStorage.setItem(key, trim ? input.value.trim() : input.value),
+    );
   } catch {}
 }
 

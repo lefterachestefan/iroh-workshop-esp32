@@ -23,16 +23,19 @@ export async function lampPage({ rememberKey }) {
   const $toggle = $("#toggle");
   const $auto = $("#auto");
   const $levelFill = $("#level-fill");
-  const $thresholdMark = $("#threshold-mark");
   const $level = $("#level");
   const $threshold = $("#threshold");
   const $slider = $("#threshold-slider");
+  const $delay = $("#delay");
+  const $delaySlider = $("#delay-slider");
   const $result = $("#result");
   const $status = $("#status");
 
   remember($id, rememberKey);
-  // The network name, not the password.
   remember($ssid, rememberKey && `${rememberKey}:ssid`);
+  // The password shows as dots; it's in this browser's storage, in plain text.
+  remember($password, rememberKey && `${rememberKey}:password`, { trim: false });
+  remember($name, rememberKey && `${rememberKey}:name`);
   let lamp;
   let state;
   // Bumped on every (re)connect, so callbacks from an old connection, like a
@@ -50,11 +53,12 @@ export async function lampPage({ rememberKey }) {
     setSwitch($toggle, state.on);
     setSwitch($auto, state.auto);
     $levelFill.style.width = `${state.level}%`;
-    $thresholdMark.style.left = `${state.threshold}%`;
     $level.textContent = state.level;
     $threshold.textContent = state.threshold;
-    // Don't move the slider under the user's finger.
+    $delay.textContent = state.delay_ms;
+    // Don't move a slider under the user's finger.
     if (document.activeElement !== $slider) $slider.value = state.threshold;
+    if (document.activeElement !== $delaySlider) $delaySlider.value = state.delay_ms;
   };
 
   // Either the connect form, or "connected to …" with the lamp.
@@ -123,6 +127,10 @@ export async function lampPage({ rememberKey }) {
       return;
     }
     $provision.disabled = true;
+    // The browser's device picker can't be styled, and it only closes with a
+    // pick or Esc. Say both while it's open.
+    $setupResult.textContent =
+      "lamp not in the list? Hold its B button for 5 seconds, until the LED blinks slowly. Esc closes the list.";
     let device;
     try {
       device = await find_device();
@@ -143,7 +151,12 @@ export async function lampPage({ rememberKey }) {
       await connect();
       $setupResult.textContent = "";
     } catch (err) {
-      showError($setupResult, err);
+      if (!device && /cancel/i.test(String(err?.message ?? err))) {
+        // Closing the picker isn't an error.
+        $setupResult.textContent = "no lamp picked";
+      } else {
+        showError($setupResult, err);
+      }
       device?.disconnect();
     } finally {
       $provision.disabled = false;
@@ -172,13 +185,23 @@ export async function lampPage({ rememberKey }) {
   };
 
   $toggle.addEventListener("click", () => request($toggle, () => lamp.set(!state.on)));
-  $auto.addEventListener("click", () => request($auto, () => lamp.set_auto(!state.auto)));
+  // The settings change together: take the others from the last state.
+  const configure = (change) => {
+    const s = { auto: state.auto, threshold: state.threshold, delay_ms: state.delay_ms, ...change };
+    return lamp.configure(s.auto, s.threshold, s.delay_ms);
+  };
+  $auto.addEventListener("click", () => request($auto, () => configure({ auto: !state.auto })));
   // While dragging, move the mark; on release, tell the device.
   $slider.addEventListener("input", () => {
-    $thresholdMark.style.left = `${$slider.value}%`;
     $threshold.textContent = $slider.value;
   });
   $slider.addEventListener("change", () =>
-    request(null, () => lamp.set_threshold(Number($slider.value))),
+    request(null, () => configure({ threshold: Number($slider.value) })),
+  );
+  $delaySlider.addEventListener("input", () => {
+    $delay.textContent = $delaySlider.value;
+  });
+  $delaySlider.addEventListener("change", () =>
+    request(null, () => configure({ delay_ms: Number($delaySlider.value) })),
   );
 }
