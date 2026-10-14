@@ -21,9 +21,16 @@ irpc-iroh = "0.17"
 light-protocol = { path = "../protocol" }
 # wasm32 has no OS RNG; route getrandom to the browser (see .cargo/config.toml).
 getrandom = { version = "0.3", features = ["wasm_js"] }
+# The same for getrandom 0.4, which the provisioning crates use (for the
+# pairing secret and the HPKE key).
+getrandom-04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
+# Step 5: provisioning WiFi over Web Bluetooth. Not released yet.
+iroh-provision = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65", features = ["client"] }
+iroh-provision-ble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65", features = ["web"] }
+web-sys = { version = "0.3", features = ["BluetoothDevice", "BluetoothRemoteGattServer"] }
 
 [profile.release]
-opt-level = "z"
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"

@@ -2,6 +2,7 @@
 [build]
 target = "wasm32-unknown-unknown"
 
-# getrandom 0.3 needs to be told to use the browser's crypto.getRandomValues.
+# getrandom 0.3 needs to be told to use the browser's crypto.getRandomValues,
+# and web-sys only has Web Bluetooth (step 5) behind a cfg.
 [target.wasm32-unknown-unknown]
-rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"', '--cfg', 'web_sys_unstable_apis']

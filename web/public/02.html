@@ -3,32 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Step 2: light switch</title>
+    <title>Step 2: stable identity</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <main>
-      <h1>Step 2: light switch</h1>
-      <p class="subtitle">Switch the LED over iroh. The device gets a new endpoint id on every start, so paste it each time.</p>
+      <h1>Step 2: stable identity</h1>
+      <p class="subtitle">The device keeps its endpoint id now, so this page remembers it too. Restart the device and say hello again: same id, still no protocols.</p>
       <div class="card">
         <label for="endpoint-id">Endpoint id (from the serial console)</label>
         <input id="endpoint-id" type="text" autocomplete="off" spellcheck="false" />
-        <button id="connect" type="button" disabled>connect</button>
-      </div>
-      <div class="card">
-        <div class="light" id="light"></div>
-        <div class="row">
-          <button id="on" type="button" disabled>on</button>
-          <button id="off" type="button" disabled>off</button>
-        </div>
+        <button id="hello" type="button" disabled>say hello</button>
         <output id="result" class="result"></output>
       </div>
       <p class="status" id="status">loading…</p>
       <p><a href="./index.html">all steps</a></p>
     </main>
     <script type="module">
-      import { lightPage } from "./light.js";
-      lightPage({ version: 1 });
+      import { startNode, remember, showError, clearError } from "./node.js";
+      const $ = (sel) => document.querySelector(sel);
+      remember($("#endpoint-id"), "iroh-workshop:device");
+      const node = await startNode($("#status"));
+      $("#hello").disabled = false;
+      $("#hello").addEventListener("click", async () => {
+        const $result = $("#result");
+        clearError($result);
+        $result.textContent = "dialing…";
+        try {
+          $result.textContent = await node.hello($("#endpoint-id").value.trim());
+        } catch (err) {
+          showError($result, err);
+        }
+      });
     </script>
   </body>
 </html>

@@ -8,6 +8,11 @@
   box-sizing: border-box;
 }
 
+/* `.card` sets `display`, which would otherwise win over `hidden`. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -41,8 +46,14 @@ h1 {
   gap: 0.6rem;
 }
 
-.card + .card {
-  margin-top: 1rem;
+.card {
+  margin-bottom: 1rem;
+}
+
+.light-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
 }
 
 label {
@@ -79,6 +90,68 @@ button {
   cursor: pointer;
 }
 
+/* A quiet text button, for things like "connect to another". */
+button.secondary {
+  background: none;
+  color: inherit;
+  font-weight: 400;
+  font-size: 0.85rem;
+  padding: 0;
+  opacity: 0.6;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+button.secondary:hover {
+  opacity: 1;
+}
+
+.connected {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+/* An on/off switch: a pill with a knob that slides right when on. */
+.switch {
+  position: relative;
+  width: 5.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 2.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 25%, transparent);
+  color: inherit;
+  text-align: left;
+  transition: background 0.2s, padding 0.2s;
+}
+
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 0.3rem;
+  left: 0.3rem;
+  width: 1.9rem;
+  height: calc(100% - 0.6rem);
+  border-radius: 999px;
+  background: white;
+  transition: left 0.2s;
+}
+
+.switch[aria-checked="true"] {
+  background: var(--accent);
+  color: white;
+  padding: 0.5rem 2.6rem 0.5rem 0.9rem;
+}
+
+.switch[aria-checked="true"]::before {
+  left: calc(100% - 2.2rem);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -98,6 +171,7 @@ button:disabled {
 }
 
 .result {
+  display: block;
   min-height: 1.5rem;
 }
 
@@ -114,4 +188,73 @@ button:disabled {
 nav a {
   display: block;
   padding: 0.4rem 0;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.row input {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+/* Step 5: the lamp, with its switches next to it, and the sensor below. */
+.lamp-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.meter {
+  position: relative;
+  height: 0.6rem;
+  margin-top: 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--on);
+  transition: width 0.3s;
+}
+
+/* The threshold: a tick across the bar. */
+.meter-mark {
+  position: absolute;
+  top: -0.25rem;
+  width: 2px;
+  height: 1.1rem;
+  margin-left: -1px;
+  background: currentColor;
+}
+
+.meter-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+input[type="range"] {
+  padding: 0;
+  border: none;
+  accent-color: var(--accent);
 }

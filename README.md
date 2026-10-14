@@ -9,22 +9,34 @@ dual-band WiFi 6, BLE.
 ## Before the workshop
 
 The first build downloads and compiles ESP-IDF, Espressif's SDK: several GB and
-a good while. **Do this at home**, not on the conference WiFi.
+a good while.
 
-1. Install [Rust](https://rustup.rs). The right nightly installs itself the
+1. Install the system packages: a C compiler and linker (rustup doesn't bring
+   one), Python 3.9 or newer for the ESP-IDF build, and `libudev` for `espflash`.
+
+   ```sh
+   # Debian/Ubuntu: python3-venv is a separate package there, and the ESP-IDF
+   # build fails halfway without it.
+   sudo apt install build-essential pkg-config libudev-dev python3 python3-venv
+   # Fedora
+   sudo dnf install gcc pkgconf-pkg-config systemd-devel python3
+   # Arch
+   sudo pacman -S --needed base-devel python
+   # macOS: the command line tools bring the compiler.
+   xcode-select --install
+   ```
+
+   On Linux, to use the board's serial port, add yourself to the `dialout`
+   group (`uucp` on Arch), then log out and back in:
+   `sudo usermod -aG dialout $USER`.
+2. Install [Rust](https://rustup.rs). The right nightly installs itself the
    first time you build here (see `rust-toolchain.toml`). No `espup` needed: the
    C5 is RISC-V.
-2. Install the flashing and linking tools:
+3. Install the flashing and linking tools:
 
    ```sh
    cargo install espflash ldproxy
    ```
-
-   On Linux, `espflash` needs `libudev` (`sudo apt install libudev-dev` on
-   Debian/Ubuntu), and you need to be in the `dialout` group to use the serial
-   port.
-3. Make sure you have `python3` (3.9 or newer) and `git`; the ESP-IDF build uses
-   them.
 4. Build the first step once:
 
    ```sh
@@ -61,8 +73,8 @@ WIFI_CONFIG='your-ssid:your-password' cargo run --release
 ```
 
 Each step's `main.rs` is short; the boilerplate (WiFi, an iroh endpoint sized
-for a microcontroller) is in [`common/`](common/src/lib.rs). Compare a step
-with the previous one (`diff 02-light/src/main.rs 03-identity/src/main.rs`) to
+for a microcontroller) is in [`esp32/`](esp32/src/lib.rs). Compare a step
+with the previous one (`diff 02-identity/src/main.rs 03-light/src/main.rs`) to
 see what's new.
 
 ### 01-hello: an endpoint
@@ -78,20 +90,20 @@ There's no stored key yet, so every start prints a different id. Paste it into
 **page 1**: the device answers, but turns the connection away, since it doesn't
 offer any protocol yet.
 
-### 02-light: a protocol
+### 02-identity: a stable endpoint id
+
+The secret key is generated once and kept in flash (NVS), so the endpoint id
+survives restarts and reflashing. Paste it into **page 2** once: the page
+remembers it, and so do the pages after it.
+
+### 03-light: a protocol
 
 The device offers a protocol: switch the LED, ask whether it's on. The protocol
 is an enum in [`protocol/src/v1.rs`](protocol/src/v1.rs), shared by the device and
 the page, so both speak the same Rust types; [irpc] takes care of the wire
 format. Each protocol has an ALPN, a name both sides agree on when connecting.
 
-Paste the endpoint id into **page 2** and switch the light.
-
-### 03-identity: a stable endpoint id
-
-The secret key is generated once and kept in flash (NVS), so the endpoint id
-survives restarts and reflashing. Same protocol as step 2; **page 3**
-remembers the id.
+On **page 3**, switch the light.
 
 ### 04-button: watching
 
@@ -100,15 +112,54 @@ asking. Protocol version 2 ([`protocol/src/v2.rs`](protocol/src/v2.rs), with its
 own ALPN) adds `Watch`: the device sends the current state, then every change.
 On **page 4**, press the button and watch the light follow.
 
+### 05-lamp: the whole thing (demo)
+
+Not one to build at the workshop: this is where the steps lead. A lamp you
+could put on a shelf, with:
+
+- **WiFi over Bluetooth** instead of `WIFI_CONFIG`. On first boot the device
+  advertises as `lamp-<short endpoint id>`; **page 5** sends it a network,
+  sealed with HPKE to its endpoint id so only that device can read it, and
+  gets back a pairing ticket (which holds the endpoint id, so it can connect
+  right away). Hold BOOT for 5 seconds to forget the network and start over;
+  the endpoint id stays. The provisioning code is [iroh-provision].
+- **A push button**: press to switch the light, hold for a second to switch
+  automatic mode.
+- **A photoresistor**: in automatic mode the lamp switches on when it gets
+  darker than a threshold (set on page 5; kept across restarts), with a
+  margin and a 2-second delay so a passing shadow doesn't switch it.
+
+Protocol version 3 ([`protocol/src/v3.rs`](protocol/src/v3.rs)) answers
+everything with the whole state: on/off, mode, brightness and threshold.
+
+The user LED blinks slowly while waiting for WiFi credentials, fast while
+joining, and is off once joined.
+
+| XIAO pin | GPIO | Connect to |
+|---|---|---|
+| D0 | 1 | photoresistor to 3V3, and 10 kΩ to GND (ADC) |
+| D1 | 0 | push button to GND (internal pull-up) |
+| D4 | 23 | LED with a resistor to GND, or a logic-level MOSFET for a bigger lamp |
+
+Point the photoresistor away from the lamp: if it sees the lamp, automatic
+mode switches it off again. No `WIFI_CONFIG` needed:
+
+```sh
+cd 05-lamp
+cargo run --release
+```
+
+Page 5 needs Chrome or Edge for Web Bluetooth.
+
 ## Layout
 
 All devices are one Cargo workspace, so ESP-IDF is built once for all of them.
 
 | Path | What |
 |---|---|
-| `common/` | WiFi, time, the stored key, and the iroh endpoint builder |
-| `protocol/` | the light protocols, version 1 (steps 2, 3) and 2 (step 4) |
-| `01-hello/` … `04-button/` | the steps |
+| `esp32/` | WiFi, time, the stored key, and the `esp32::N0` endpoint preset |
+| `protocol/` | the light protocols, version 1 (step 3), 2 (step 4) and 3 (step 5) |
+| `01-hello/` … `05-lamp/` | the steps |
 | `web/` | the pages, one per step (not part of the workspace: it builds for the browser) |
 | `sdkconfig.defaults` | ESP-IDF settings for all steps (PSRAM, buffer sizes, ...) |
 | `.cargo/config.toml` | target, chip (`MCU`), and the flash command |
@@ -119,9 +170,15 @@ All devices are one Cargo workspace, so ESP-IDF is built once for all of them.
   data, not just power.
 - **The board loops through resets and prints nothing useful:** unplug it and
   plug it back in.
+- **`waiting for download` after flashing:** the chip was reset back into the
+  bootloader. The runner in `.cargo/config.toml` avoids this by resetting once
+  after flashing and not again from the monitor; if you changed it, change it
+  back. Pressing RESET also works, but it drops the USB connection, so start
+  `espflash monitor` again afterwards.
 - **`WIFI_CONFIG is not set`:** it's read when building, so it goes on the
   `cargo run` command line.
 
 [iroh]: https://www.iroh.computer
 [irpc]: https://docs.rs/irpc
 [Seeed Studio XIAO ESP32-C5]: https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C5-p-6609.html
+[iroh-provision]: https://github.com/n0-computer/iroh-esp32-examples/tree/provisioning/provisioning

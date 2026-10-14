@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Step 5: lamp</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Step 5: lamp</h1>
+      <p class="subtitle">The finished thing: WiFi over Bluetooth, a button, and a light sensor that switches the lamp on when it gets dark.</p>
+      <div class="card" id="setup">
+        <label for="ssid">New lamp? Give it WiFi over Bluetooth</label>
+        <div class="row">
+          <input id="ssid" type="text" placeholder="network" autocomplete="off" spellcheck="false" />
+          <input id="password" type="password" placeholder="password" autocomplete="off" />
+          <input id="name" type="text" placeholder="name (optional)" maxlength="32" autocomplete="off" spellcheck="false" />
+        </div>
+        <button id="provision" type="button" disabled>find a lamp</button>
+        <output id="setup-result" class="result"></output>
+        <p class="hint">The credentials are encrypted to the lamp's endpoint id; only it can read them. Web Bluetooth needs Chrome or Edge, on desktop or Android.</p>
+      </div>
+      <div class="card" id="connect-form">
+        <label for="endpoint-id">Endpoint id (from the serial console) or pairing ticket</label>
+        <input id="endpoint-id" type="text" autocomplete="off" spellcheck="false" />
+        <button id="connect" type="button" disabled>connect</button>
+      </div>
+      <div class="card connected" id="connected" hidden>
+        <span>connected to <code id="peer"></code></span>
+        <button id="change" type="button" class="secondary">connect to another</button>
+      </div>
+      <div class="card" id="lamp-card" hidden>
+        <div class="lamp-row">
+          <div class="light" id="light"></div>
+          <div class="controls">
+            <div class="control">
+              <span>light</span>
+              <button id="toggle" type="button" class="switch" role="switch" aria-checked="false">off</button>
+            </div>
+            <div class="control">
+              <span>automatic</span>
+              <button id="auto" type="button" class="switch" role="switch" aria-checked="false">off</button>
+            </div>
+          </div>
+        </div>
+        <div class="meter" aria-hidden="true">
+          <div class="meter-fill" id="level-fill"></div>
+          <div class="meter-mark" id="threshold-mark"></div>
+        </div>
+        <div class="meter-labels">
+          <span>brightness <b id="level">–</b>%</span>
+          <span>on below <b id="threshold">–</b>%</span>
+        </div>
+        <input id="threshold-slider" type="range" min="0" max="100" aria-label="threshold" />
+      </div>
+      <output id="result" class="result"></output>
+      <p class="status" id="status">loading…</p>
+      <p><a href="./index.html">all steps</a></p>
+    </main>
+    <script type="module">
+      import { lampPage } from "./lamp.js";
+      lampPage({ rememberKey: "iroh-workshop:lamp" });
+    </script>
+  </body>
+</html>

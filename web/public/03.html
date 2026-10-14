@@ -3,26 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Step 3: stable identity</title>
+    <title>Step 3: light switch</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <main>
-      <h1>Step 3: stable identity</h1>
-      <p class="subtitle">Same protocol as step 2, but the device keeps its endpoint id, so this page remembers it too.</p>
-      <div class="card">
+      <h1>Step 3: light switch</h1>
+      <p class="subtitle">Switch the LED over iroh. The device kept its endpoint id from step 2, so it's already filled in.</p>
+      <div class="card" id="connect-form">
         <label for="endpoint-id">Endpoint id (from the serial console)</label>
         <input id="endpoint-id" type="text" autocomplete="off" spellcheck="false" />
         <button id="connect" type="button" disabled>connect</button>
       </div>
-      <div class="card">
-        <div class="light" id="light"></div>
-        <div class="row">
-          <button id="on" type="button" disabled>on</button>
-          <button id="off" type="button" disabled>off</button>
-        </div>
-        <output id="result" class="result"></output>
+      <div class="card connected" id="connected" hidden>
+        <span>connected to <code id="peer"></code></span>
+        <button id="change" type="button" class="secondary">connect to another</button>
       </div>
+      <div class="card light-card" id="light-card" hidden>
+        <div class="light" id="light"></div>
+        <button id="toggle" type="button" class="switch" role="switch" aria-checked="false">off</button>
+      </div>
+      <output id="result" class="result"></output>
       <p class="status" id="status">loading…</p>
       <p><a href="./index.html">all steps</a></p>
     </main>

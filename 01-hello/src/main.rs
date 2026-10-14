@@ -7,22 +7,20 @@
 use iroh::protocol::Router;
 use log::info;
 
-fn main() {
-    let board = common::init();
-    let _wifi = common::connect_wifi(board.modem, board.sys_loop, board.nvs);
+#[esp32::main]
+async fn main() {
+    let board = esp32::init();
+    let _wifi = esp32::connect_wifi(board.modem, board.sys_loop, board.nvs);
 
-    common::block_on(async {
-        let endpoint = common::endpoint_builder()
-            .bind()
-            .await
-            .expect("Failed to bind the endpoint");
-        info!("Hello from iroh! My endpoint id is {}", endpoint.id());
+    let endpoint = iroh::Endpoint::bind(esp32::N0)
+        .await
+        .expect("Failed to bind the endpoint");
+    info!("Hello from iroh! My endpoint id is {}", endpoint.id());
 
-        // A router answers incoming connections. It has no protocols yet, so it
-        // turns everyone away, but that already shows the device is reachable.
-        let _router = Router::builder(endpoint).spawn();
+    // A router answers incoming connections. It has no protocols yet, so it
+    // turns everyone away, but that already shows the device is reachable.
+    let _router = Router::builder(endpoint).spawn();
 
-        // Keep running, so the endpoint stays up.
-        std::future::pending::<()>().await;
-    });
+    // Keep running, so the endpoint stays up.
+    std::future::pending::<()>().await;
 }

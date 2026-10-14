@@ -1,4 +1,4 @@
-//! Switch the light, and ask whether it's on. Steps 2 and 3.
+//! Switch the light, and ask whether it's on. Step 3.
 
 use irpc::{channel::oneshot, rpc_requests};
 use serde::{Deserialize, Serialize};

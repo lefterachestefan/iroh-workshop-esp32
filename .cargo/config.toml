@@ -5,9 +5,11 @@ target = "riscv32imac-esp-espidf"
 
 [target.riscv32imac-esp-espidf]
 linker = "ldproxy"
-# `--after no-reset`: only the monitor resets the chip. Two resets in quick
-# succession can leave newer chips in a boot loop until they're unplugged.
-runner = "espflash flash --after no-reset --monitor"
+# Only the flasher resets the chip. Two resets in quick succession can leave
+# newer chips in a boot loop until they're unplugged, and on the ESP32-C5 the
+# monitor's own reset lands in download mode ("waiting for download").
+# `--no-reset` needs `--non-interactive`, so the monitor has no CTRL+R.
+runner = "espflash flash --monitor --non-interactive --no-reset"
 # ldproxy reports on stderr, which newer nightlies turn into warnings.
 rustflags = ["--cfg", "espidf_time64", "-Alinker_messages"]
 

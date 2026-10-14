@@ -12,6 +12,23 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=98304
 # PSRAM: iroh's heap (relay, discovery, QUIC/TLS buffers) lives there.
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_USE_MALLOC=y
+# By default, allocations up to 16 KB (nearly all of iroh's) go to internal
+# SRAM first. That fills it up, and then creating a FreeRTOS object such as a
+# mutex fails mid-connection. Send all of malloc to PSRAM instead.
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=0
+
+# BLE, for step 5's WiFi provisioning: NimBLE (what esp32-nimble wraps), not
+# Bluedroid. The steps that don't use it don't start it, and it's off again
+# once a device is provisioned.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLE_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=n
+CONFIG_BT_NIMBLE_ENABLED=y
+# One provisioning client at a time.
+CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
+# The NimBLE host's heap in PSRAM, like iroh's.
+CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_EXTERNAL=y
 
 # rustls, not mbedtls.
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=n
@@ -38,3 +55,19 @@ CONFIG_LWIP_IPV6=n
 CONFIG_NEWLIB_NANO_FORMAT=y
 CONFIG_LOG_COLORS=y
 CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
+
+# Log wall-clock time (HH:MM:SS.mmm, UTC once SNTP has set it) instead of ms
+# since boot, so device logs line up with the CLI's timings.
+CONFIG_LOG_TIMESTAMP_SOURCE_SYSTEM=y
+
+# Speed, not size, for ESP-IDF's C code too (the default for release builds is
+# -Os). The bootloader stays size-optimized: it has a fixed-size slot.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# The task watchdog fires when the idle task hasn't run for the timeout, i.e.
+# some task kept the CPU busy without blocking. The default 5 s trips on the
+# software certificate checks; 30 s doesn't, but still catches a task spinning
+# forever. Then reboot instead of just printing a warning. (It doesn't catch a
+# deadlock: blocked tasks leave the CPU idle.)
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=30
+CONFIG_ESP_TASK_WDT_PANIC=y

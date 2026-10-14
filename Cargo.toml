@@ -2,19 +2,23 @@
 # with `cargo run --release` from its directory.
 [workspace]
 resolver = "2"
-members = ["common", "protocol", "01-hello", "02-light", "03-identity", "04-button"]
-# The web pages build for the browser, not the ESP32.
-exclude = ["web"]
+members = ["esp32", "esp32/macros", "protocol", "01-hello", "02-identity", "03-light", "04-button", "05-lamp"]
+# The web pages build for the browser and the CLI for your computer, not the
+# ESP32.
+exclude = ["web", "cli"]
 
 [profile.release]
-opt-level = "s"
+# Speed, not size: the app is ~4 MB of 8 MB flash, and the certificate checks
+# (P-256/P-384 ECDSA in software) block the main task for seconds when
+# size-optimized, long enough to trip the task watchdog.
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
 
 [profile.dev]
 debug = true    # Symbols are nice, and they don't increase the size on flash
-opt-level = "z"
+opt-level = 3
 lto = true
 codegen-units = 1
 
@@ -23,3 +27,7 @@ codegen-units = 1
 # irpc's default features, which pull in ring). Not released yet.
 irpc = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }
 irpc-iroh = { git = "https://github.com/n0-computer/irpc", rev = "39de17fc19cc5c77d17be2de33523e95ab40220d" }
+# esp32-nimble 0.13 (for step 5's BLE provisioning) doesn't build against
+# ESP-IDF v5.5 on the C5: os_mempool_init got an r_ prefix there. A copy with
+# that fixed, until it's upstream.
+esp32-nimble = { git = "https://github.com/n0-computer/iroh-esp32-examples", rev = "dbf4e3d25fe759af434d09c7b5640b7ecb978e65" }
