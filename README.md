@@ -70,7 +70,8 @@ a good while.
    WIFI_CONFIG='your-ssid:your-password' cargo build --release
    ```
 
-   If that finishes, you're set. (The other steps share that build.)
+   For an open network, just `WIFI_CONFIG='your-ssid'`. If that finishes,
+   you're set. (The other steps share that build.)
 5. For the web pages: `rustup target add wasm32-unknown-unknown` and
    `cargo install wasm-bindgen-cli --version 0.2.126`.
 

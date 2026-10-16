@@ -7,12 +7,13 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::hal::modem::Modem;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::sntp::EspSntp;
-use esp_idf_svc::wifi::{BlockingWifi, ClientConfiguration, Configuration, EspWifi};
+use esp_idf_svc::wifi::{AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi};
 use log::info;
 
 use crate::sync_clock;
 
 /// `SSID:PASSWORD`, set when building: `WIFI_CONFIG='SSID:PASSWORD' cargo run --release`.
+/// For an open network, just `SSID`.
 const WIFI_CONFIG: &str = match option_env!("WIFI_CONFIG") {
     Some(value) => value,
     None => {
@@ -33,9 +34,7 @@ pub fn connect_wifi(
     sys_loop: EspSystemEventLoop,
     nvs: EspDefaultNvsPartition,
 ) -> Wifi {
-    let (ssid, password) = WIFI_CONFIG
-        .split_once(':')
-        .expect("WIFI_CONFIG must be SSID:PASSWORD");
+    let (ssid, password) = WIFI_CONFIG.split_once(':').unwrap_or((WIFI_CONFIG, ""));
     info!("Connecting to WiFi network {ssid:?}");
     let mut wifi = BlockingWifi::wrap(
         EspWifi::new(modem, sys_loop.clone(), Some(nvs)).expect("Failed to create WiFi driver"),
@@ -45,6 +44,12 @@ pub fn connect_wifi(
     wifi.set_configuration(&Configuration::Client(ClientConfiguration {
         ssid: ssid.try_into().expect("SSID too long"),
         password: password.try_into().expect("Password too long"),
+        // The default, WPA2, won't join an open network.
+        auth_method: if password.is_empty() {
+            AuthMethod::None
+        } else {
+            AuthMethod::WPA2Personal
+        },
         ..Default::default()
     }))
     .expect("Failed to configure WiFi");
