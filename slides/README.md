@@ -33,7 +33,8 @@ entry). The slide number is in the URL hash, so reloading keeps your place.
 - `index.md` — the slides, separated by `---`. Fenced code blocks are
   syntax-highlighted at build time. Images referencing local `.svg` files
   are inlined into the output (ids get namespaced per slide so SMIL
-  animations don't collide). `![w:900](x.svg)` pins the display width;
+  animations don't collide); local `.png`/`.jpg` files are embedded as
+  data URIs. `![w:900](x.svg)` pins the display width;
   `<!-- center -->` centers a slide. Reference-style link definitions are
   shared across all slides.
 - `scripts/*.gen.py` — the SVG generators; most are copied from the

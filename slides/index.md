@@ -72,6 +72,55 @@ iroh is **QUIC**, but **p2p**
 
 ---
 
+# Workshop: iroh on an ESP32
+
+- Five small steps, from a bare endpoint to a lamp you control from a web page
+- Each step is its own program: jump in anywhere
+
+What you need:
+
+- Rust, `espflash` and `ldproxy`
+- A browser; Chrome or Edge for step 5 (Web Bluetooth)
+- [github.com/n0-computer/iroh-workshop-esp32](https://github.com/n0-computer/iroh-workshop-esp32)
+
+---
+
+# The device
+
+- A Seeed Studio XIAO ESP32-C5, with its antenna
+- A USB-C cable that carries data
+
+![w:420](public/images/xiao-esp32-c5.png)
+
+---
+
+# Plug in the antenna
+
+- The board comes with an external antenna on a tiny **U.FL** connector
+- Press it on straight until it clicks
+- Without it, WiFi barely works:
+
+```
+Failed to connect to WiFi: ESP_ERR_TIMEOUT (error code 263)
+```
+
+![w:360](public/images/antenna.png)
+
+---
+
+# WiFi
+
+The venue network is open, so just the SSID:
+
+```sh
+export WIFI_CONFIG=UPB-Guest
+```
+
+- Read at build time, so set it before `cargo run`
+- Your own phone hotspot is welcome too: `WIFI_CONFIG='ssid:password'`
+
+---
+
 # Step 1: an endpoint
 
 ```rust

@@ -3,7 +3,8 @@
 //! Usage: cargo run [-- input.md [output.html]]
 //!
 //! Slides are separated by lines containing only `---`. Images referencing
-//! local SVG files are inlined into the page so the result is a single file;
+//! local SVG files are inlined into the page so the result is a single file
+//! (PNG and JPEG images become data URIs);
 //! SMIL animations keep working and are restarted whenever a slide becomes
 //! active. All SVG ids are prefixed per slide so animations that reuse id
 //! names (e.g. `#relay-path`) don't clash within the one document.
@@ -48,6 +49,8 @@ fn main() {
         .to_string();
 
     let img_re = Regex::new(r#"<img src="([^"]+\.svg)" alt="([^"]*)"[^>]*>"#).unwrap();
+    let raster_re =
+        Regex::new(r#"<img src="([^"]+\.(png|jpe?g))" alt="([^"]*)"[^>]*>"#).unwrap();
     let mut body = String::new();
     for (idx, slide_md) in slides.iter().enumerate() {
         let with_defs = format!("{slide_md}\n\n{linkdefs}\n");
@@ -58,6 +61,23 @@ fn main() {
                 let width = caps[2].strip_prefix("w:").and_then(|w| w.parse::<u32>().ok());
                 match fs::read_to_string(&path) {
                     Ok(svg) => inline_svg(&svg, idx, width),
+                    Err(e) => {
+                        eprintln!("warning: cannot inline {}: {e}", path.display());
+                        caps[0].to_string()
+                    }
+                }
+            })
+            .into_owned();
+        rendered = raster_re
+            .replace_all(&rendered, |caps: &regex::Captures| {
+                let path = base_dir.join(&caps[1]);
+                let mime = if &caps[2] == "png" { "image/png" } else { "image/jpeg" };
+                let style = match caps[3].strip_prefix("w:").and_then(|w| w.parse::<u32>().ok()) {
+                    Some(w) => format!(" style=\"width:{w}px\""),
+                    None => String::new(),
+                };
+                match fs::read(&path) {
+                    Ok(bytes) => format!("<img src=\"data:{mime};base64,{}\"{style}>", base64(&bytes)),
                     Err(e) => {
                         eprintln!("warning: cannot inline {}: {e}", path.display());
                         caps[0].to_string()
@@ -113,6 +133,23 @@ fn render_markdown(md: &str, ss: &SyntaxSet, theme: &syntect::highlighting::Them
     }
     let mut out = String::new();
     html::push_html(&mut out, events.into_iter());
+    out
+}
+
+/// Standard base64 with padding, for data URIs.
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let n = chunk.iter().enumerate().fold(0u32, |n, (i, &b)| n | (b as u32) << (16 - 8 * i));
+        for i in 0..4 {
+            if i <= chunk.len() {
+                out.push(ALPHABET[(n >> (18 - 6 * i) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
     out
 }
 
